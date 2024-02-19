@@ -64,7 +64,7 @@ def parseExpr(s: str) -> Expr:
     return expr
 
 def parseFile(path: str) -> list[t.Tuple[str, Expr]]:
-    file = open("./test.lambda", "r")
+    file = open(path, "r")
     code = file.read()
     file.close()
 
@@ -78,7 +78,7 @@ def parseFile(path: str) -> list[t.Tuple[str, Expr]]:
     return bindings
 
 if __name__ == "__main__":
-    for (b, e) in parseFile("test.lambda"):
+    for (b, e) in parseFile("./test.lambda"):
         print(b)
         print(e)
         print()

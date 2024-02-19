@@ -1,2 +1,7 @@
-
-\monkey banana -> (\first second -> first) (orange apple) banana
+monkeyandbanana = \monkey banana -> (\first second -> first) 
+  (orange apple) 
+    banana 
+I = \x -> x
+    
+func = \y -> y
+    \z -> z
