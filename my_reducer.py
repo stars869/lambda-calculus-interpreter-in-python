@@ -9,7 +9,7 @@ class ReducerError(Exception):
 def alpha_convert(expr: Expr, oldVar: Variable, newVar: Variable):
     if isinstance(expr, Variable):
         if expr == oldVar:
-            expr = newVar
+            expr.value = newVar.value
 
     elif isinstance(expr, Abstraction):
         if oldVar in expr.params:
