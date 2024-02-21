@@ -23,3 +23,5 @@ Three = Succ Two
 Add = \m -> \n -> \f -> \x -> m f (n f x)
 
 Five = Add Two Three 
+
+test = (\f x -> f x)(\f x -> f x)

@@ -18,7 +18,7 @@ def alpha_convert(expr: Expr, oldVar: Variable, newVar: Variable):
             alpha_convert(expr.body, oldVar, newVar)
 
     elif isinstance(expr, Application):
-        for e in expr:
+        for e in expr.exprs:
             alpha_convert(e, oldVar, newVar)
 
     else:
@@ -68,7 +68,7 @@ def beta_reduce(expr: Expr, bindings: dict[str, Expr], bounds: set[Variable]) ->
                 newParams.append(newp)
             else:
                 newParams.append(p)
-        bounds.union(newParams)
+        bounds = bounds.union(newParams)
 
         newBody = beta_reduce(expr.body, bindings, bounds)
 
