@@ -36,16 +36,27 @@ def sepBinding(s: str) -> t.Tuple[str, str]:
 
     return (varname, expr)
 
+class Expr: pass 
+
 @dataclass
-class Expr:
-    # variable, abstraction, application
-    value: t.Union[str, t.Tuple, list] 
+class Variable(Expr): 
+    value: str 
 
-class Variable(Expr): pass 
+    def __hash__(self) -> int:
+        return hash(self.value)
+    
+@dataclass
+class Abstraction(Expr): 
+    params: list[Variable]
+    body: Expr 
 
-class Abstraction(Expr): pass
+    def __init__(self, value: t.Tuple[list[Variable], Expr]):
+        self.params = value[0]
+        self.body = value[1]
 
-class Application(Expr): pass
+@dataclass
+class Application(Expr): 
+    exprs: list[Expr]
 
 def parseExpr(s: str) -> Expr:
     alphabetP = charPredPG(lambda c: c.isalpha())
@@ -76,6 +87,26 @@ def parseFile(path: str) -> list[t.Tuple[str, Expr]]:
         expr = parseExpr(exprCode)
         bindings.append((varname, expr))
     return bindings
+
+
+def serilizeExpr(expr: Expr) -> str:
+    if isinstance(expr, Variable):
+        return expr.value
+    
+    elif isinstance(expr, Abstraction):
+        paramsS = " ".join(map(lambda v: v.value, expr.params))
+        bodyS = serilizeExpr(expr.body)
+        return f"\\{paramsS} -> {bodyS}"
+    
+    elif isinstance(expr, Application):
+        exprsSList = []
+        for e in expr.exprs:
+            eS = serilizeExpr(e)
+            if not isinstance(e, Variable):
+                eS = '(' + eS + ')'
+            exprsSList.append(eS)
+        return " ".join(exprsSList)
+
 
 if __name__ == "__main__":
     for (b, e) in parseFile("./test.lambda"):
