@@ -1,3 +1,0 @@
-[submodule "parser_combinator"]
-	path = parser_combinator
-	url = https://github.com/stars869/parser-combinator-in-python.git

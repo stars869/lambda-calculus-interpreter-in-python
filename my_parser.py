@@ -1,115 +1,61 @@
-import typing as t
-from itertools import chain
-from dataclasses import dataclass
-from parser_combinator.parser_combinator import Parser, charPredPG, oneCharPG, stringPG
+from parsec import (spaces, string, regex, generate, many, many1)
+from core_expr import (Expr, Var, Lam, App)
+from functools import (reduce)
 
+lexeme = lambda p: p << spaces()
 
-def sepBlocks(s: str) -> list[str]:
-    lines = s.split('\n')
-    blocks = []
-    currentBlock = []
+lparen = lexeme(string('('))
+rparen = lexeme(string(')'))
+backslash = lexeme(string('\\'))
+arrow = lexeme(string('->'))
 
-    for line in lines:
-        if not line:
-            continue
-        if not line[0].isspace():
-            blocks.append("".join(currentBlock))
-            currentBlock = [line,]
-        else:
-            currentBlock.append(line)
+symbol = lexeme(regex(r'[_a-zA-Z][_a-zA-Z0-9]*'))
 
-    blocks.append("".join(currentBlock))
+comment = regex(r'--.*')
 
-    blocks = list(filter(lambda x: x, blocks))
-    blocks = list(filter(lambda x: not x.isspace(), blocks))
+# var = symbol.parsecmap(Var)
 
-    return blocks
+@generate
+def expr():
+    e = yield app ^ abs ^ var ^ group
+    return e 
 
-def sepBinding(s: str) -> t.Tuple[str, str]:
-    result = s.split('=')
-    assert(len(result) == 2)
+@generate
+def var():
+    v = yield symbol 
+    return Var(v)
 
-    varname = result[0].strip() 
-    expr = result[1].strip()
-    assert(varname != "")
-    assert(expr != "")
-
-    return (varname, expr)
-
-class Expr: pass 
-
-@dataclass
-class Variable(Expr): 
-    value: str 
-
-    def __hash__(self) -> int:
-        return hash(self.value)
+@generate
+def abs():
+    yield backslash
+    params = yield many1(var)
+    yield arrow
+    body = yield expr
     
-@dataclass
-class Abstraction(Expr): 
-    params: list[Variable]
-    body: Expr 
+    return reduce(
+        lambda b, p: Lam(p, b), 
+        reversed(params[:-1]), 
+        Lam(params[-1], body)
+    )
 
-    def __init__(self, value: t.Tuple[list[Variable], Expr]):
-        self.params = value[0]
-        self.body = value[1]
+@generate 
+def app():
+    e1 = yield abs ^ var ^ group
+    e2 = yield abs ^ var ^ group
+    es = yield many(abs ^ var ^ group)
+    return reduce(
+        App,
+        es,
+        App(e1, e2)
+    )
 
-@dataclass
-class Application(Expr): 
-    exprs: list[Expr]
+@generate
+def group():
+    yield lparen
+    e = yield expr 
+    yield rparen
+    return e 
 
-def parseExpr(s: str) -> Expr:
-    alphabetP = charPredPG(lambda c: c.isalpha())
-    wsP = charPredPG(lambda c: c.isspace()) ** 0
-    lambdaSignP = wsP >> oneCharPG("\\") << wsP 
-    arrowSignP = wsP >> stringPG("->") << wsP
-    variableP = (wsP >> alphabetP ** 1 << wsP) ^ (lambda xs: Variable("".join(xs)))
-    paranLP = wsP >> oneCharPG("(") << wsP
-    paranRP = wsP >> oneCharPG(")") << wsP
-    abstractionLazyP = lambda: ((lambdaSignP >> variableP ** 1 << arrowSignP) + lambdaExprLazyP) ^ Abstraction
-    applicationLazyP = lambda: (((paranLP >> lambdaExprLazyP << paranRP) | abstractionLazyP | variableP) ** 2) ^ Application
-    lambdaExprLazyP = lambda: applicationLazyP() | (paranLP >> lambdaExprLazyP << paranRP) | abstractionLazyP | variableP
-
-    (expr, rest) = lambdaExprLazyP().parse(s)
-    assert(rest == "")
-    return expr
-
-def parseFile(path: str) -> list[t.Tuple[str, Expr]]:
-    file = open(path, "r")
-    code = file.read()
-    file.close()
-
-    blocks = sepBlocks(code)
-
-    bindings = []
-    for block in blocks:
-        (varname, exprCode) = sepBinding(block)
-        expr = parseExpr(exprCode)
-        bindings.append((varname, expr))
-    return bindings
-
-
-def serilizeExpr(expr: Expr) -> str:
-    if isinstance(expr, Variable):
-        return expr.value
-    
-    elif isinstance(expr, Abstraction):
-        paramsS = " ".join(map(lambda v: v.value, expr.params))
-        bodyS = serilizeExpr(expr.body)
-        return f"\\{paramsS} -> {bodyS}"
-    
-    elif isinstance(expr, Application):
-        exprsSList = []
-        for e in expr.exprs:
-            eS = serilizeExpr(e)
-            if not isinstance(e, Variable):
-                eS = '(' + eS + ')'
-            exprsSList.append(eS)
-        return " ".join(exprsSList)
-
-
-if __name__ == "__main__":
-    for (b, e) in parseFile("./test.lambda"):
-        print(b)
-        print(e)
-        print()
+if __name__ == '__main__':
+    s = "\\x y -> a (b c)"
+    print(expr.parse(s))
