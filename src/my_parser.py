@@ -13,8 +13,6 @@ symbol = lexeme(regex(r'[_a-zA-Z][_a-zA-Z0-9]*'))
 
 comment = regex(r'--.*')
 
-# var = symbol.parsecmap(Var)
-
 @generate
 def expr():
     e = yield app ^ abs ^ var ^ group
