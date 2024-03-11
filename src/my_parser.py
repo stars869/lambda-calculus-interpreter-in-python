@@ -54,6 +54,8 @@ def group():
     yield rparen
     return e 
 
+expr_parser = expr
+
 if __name__ == '__main__':
     s = "\\x y -> a (b c)"
     print(expr.parse(s))
