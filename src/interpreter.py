@@ -1,8 +1,8 @@
 import typing as t
 from core_expr import Expr, App, Lam, Var
-from my_parser import expr_parser
-from my_reducer import beta_reduce
-from serializer import serialize_expr
+from parse import expr_parser
+from nbe import Env, eval, readback
+from serialize import serialize_expr
 
 
 def sep_code_blocks(s: str) -> list[str]:
@@ -55,15 +55,16 @@ def parse_file(path: str) -> list[t.Tuple[str, Expr]]:
 
 
 if __name__ == "__main__":
-    notReducedBindings = parse_file("./test/test.lambda")
+    unnormalized_bindings = parse_file("./test/test.lambda")
     
-    bindings = {}
+    env = Env([])
     
-    for (name, expr) in notReducedBindings:
+    for (name, expr) in unnormalized_bindings:
         print(f"{name} = {serialize_expr(expr)}")
 
-        norm_expr = beta_reduce(expr, bindings, set())
+        value = eval(env, expr)
+        norm_expr = readback(value)
         print(f"{name} = {serialize_expr(norm_expr)}")
         print()
 
-        bindings[name] = norm_expr
+        env = env.add((name, value))
